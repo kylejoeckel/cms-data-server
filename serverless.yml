@@ -1,0 +1,61 @@
+service: resturant-data-server
+
+provider:
+  name: aws
+  runtime: python3.10
+  stage: dev
+  region: us-east-1
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+plugins:
+  - serverless-python-requirements
+  - serverless-offline
+
+functions:
+  create:
+    handler: handlers.create-record.create
+    events:
+      - http:
+          path: restaurants
+          method: post
+          cors: true
+
+  get:
+    handler: handlers.get-record.get
+    events:
+      - http:
+          path: restaurants/{id}
+          method: get
+          cors: true
+
+  update:
+    handler: handlers.update-record.update
+    events:
+      - http:
+          path: restaurants/{id}
+          method: put
+          cors: true
+
+resources:
+  Resources:
+    RestaurantsDynamoDbTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
